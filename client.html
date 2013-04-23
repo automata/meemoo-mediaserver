@@ -1,0 +1,59 @@
+<html>
+  <head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io.connect('http://localhost:8080');
+      var video, canvas, timer;
+
+      function initVideo () {
+          canvas = document.getElementById('canvas'),
+          video = document.getElementById('video');
+
+          window.navigator.mozGetUserMedia({video: true}, function(stream) {
+            video.mozSrcObject = stream;
+            video.play();
+          }, function (err) {
+            console.log(err);
+          });
+      }
+
+      socket.on('info', function (data) {
+        console.log(data);
+      });
+
+      function sendCanvasData () {
+        var context, canvasData;
+
+        // draw the video frame into canvas
+        context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, 320, 240);
+
+        // get an encoded string for canvas data
+        canvasData = canvas.toDataURL("image/png", 1.0);
+
+        // send through websockets
+        socket.emit('canvas data', canvasData);
+      }
+
+      function startSendLoop () {
+          sendCanvasData();
+          timer = setInterval(sendCanvasData, 100);
+      }
+
+      function stopSendLoop () {
+          clearInterval(timer);
+      }
+    </script>
+
+  </head>
+  <body onload="initVideo()">
+    <h1>meemoo media server</h1>
+    <h2>video to canvas, canvas to media server</h2>
+    <video id="video" width="320" height="240" autoplay style="border: solid 1px;"></video>
+    <canvas id="canvas" style="border: solid 1px;" width="320"
+    height="240"> </canvas>
+    <button onclick="sendCanvasData();">Send one time</button>
+    <button onclick="startSendLoop();">Start loop</button>
+    <button onclick="stopSendLoop();">Stop loop</button>
+    </body>
+</html>
